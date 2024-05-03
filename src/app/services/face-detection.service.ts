@@ -28,12 +28,15 @@ export class FaceDetectionService {
   private faceMesh!: FaceMesh;
 
   constructor(private logger: LoggerService) {}
+  initFaceMesh(): Promise<void> {
+    return new Promise((resolve, reject) => {
+      if (this.faceMesh) {
+        resolve();
+        return;
+      }
 
-  initFaceMesh(): void {
-    if (!this.faceMesh) {
       this.faceMesh = new FaceMesh({
-        locateFile: (file: string) =>
-          `https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/${file}`,
+        locateFile: (file) => `assets/face_mesh/${file}`,
       });
 
       this.faceMesh.setOptions({
@@ -41,7 +44,14 @@ export class FaceDetectionService {
         minDetectionConfidence: 0.5,
         minTrackingConfidence: 0.5,
       });
-    }
+
+      this.faceMesh.onResults((results) => {
+        console.log('FaceMesh is ready and receiving results');
+        resolve(); // Resolve once we are sure FaceMesh is operational
+      });
+
+  
+    });
   }
 
   /**
@@ -55,18 +65,9 @@ export class FaceDetectionService {
     onResultsCallback: (results: any) => void
   ): Promise<void> {
     return new Promise((resolve, reject) => {
-      // Check if faceMesh already exists to avoid re-initialization
       if (!this.faceMesh) {
-        this.faceMesh = new FaceMesh({
-          locateFile: (file) =>
-            `https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/${file}`,
-        });
-
-        this.faceMesh.setOptions({
-          maxNumFaces: 2,
-          minDetectionConfidence: 0.5,
-          minTrackingConfidence: 0.5,
-        });
+        reject('FaceMesh is not initialized.');
+        return;
       }
 
       this.faceMesh.onResults(onResultsCallback);
@@ -76,6 +77,7 @@ export class FaceDetectionService {
           await this.faceMesh.send({ image: videoElement });
           requestAnimationFrame(onFrame);
         } catch (error) {
+          this.logger.error('Error in face detection frame processing', error);
           reject(error);
         }
       };
@@ -174,7 +176,6 @@ export class FaceDetectionService {
     faceLandmarks: LandmarkPoint[],
     canvas: HTMLCanvasElement,
     videoElement: HTMLVideoElement
-    
   ): void {
     if (!faceLandmarks) {
       this.logger.info('No landmarks to draw');

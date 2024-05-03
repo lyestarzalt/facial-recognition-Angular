@@ -40,7 +40,7 @@ export class FaceDetectionPage implements OnInit, AfterViewInit, OnDestroy {
 
   private isActionTaken: boolean = false;
   private canvas!: HTMLCanvasElement;
-  private percentDetect: number = 0.3
+  private percentDetect: number = 0.3;
   constructor(
     private router: Router,
     private cameraService: CameraService,
@@ -52,15 +52,16 @@ export class FaceDetectionPage implements OnInit, AfterViewInit, OnDestroy {
   ngOnInit(): void {
     this.faceDetectionService.initFaceMesh();
   }
-
-  ngAfterViewInit(): void {
+  async ngAfterViewInit(): Promise<void> {
     this.canvas = this.canvasElement.nativeElement;
-
     const video: HTMLVideoElement = this.videoElement.nativeElement;
-    setTimeout(() => {
-      this.startVideo(video);
-    }, 500); // Delay face detection start by 1/2 second, else it wont have
-    //time to init TODO: Refactor this
+
+    try {
+      await this.faceDetectionService.initFaceMesh();
+      await this.startVideo(video);
+    } catch (error) {
+      this.logger.error('Initialization failed', error);
+    }
   }
 
   ngOnDestroy(): void {
@@ -235,7 +236,6 @@ export class FaceDetectionPage implements OnInit, AfterViewInit, OnDestroy {
   private takeAction(): void {
     // Create a new canvas element because we want the raw footage
     // and non inverted
-
 
     const canvas = document.createElement('canvas');
     const context = canvas.getContext('2d');

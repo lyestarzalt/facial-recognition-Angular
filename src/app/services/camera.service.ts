@@ -1,4 +1,3 @@
-//@Author: Lyes Tarzalt
 import { Injectable } from '@angular/core';
 
 @Injectable({
@@ -9,18 +8,22 @@ export class CameraService {
 
   constructor() {}
 
-  async startCamera(videoElement: HTMLVideoElement): Promise<void | boolean> {
+  async startCamera(videoElement: HTMLVideoElement): Promise<void> {
+    if (this.stream) {
+      this.stopCamera(); 
+    }
+
     try {
       this.stream = await navigator.mediaDevices.getUserMedia({ video: true });
       videoElement.srcObject = this.stream;
-      return new Promise((resolve, reject) => {
+      await new Promise((resolve, reject) => {
         videoElement.onloadedmetadata = () => {
           videoElement.play().then(resolve).catch(reject);
         };
       });
     } catch (error) {
       console.error('Error accessing the camera', error);
-      throw error; //handle it somewhere else
+      throw new Error('Unable to access the camera.');
     }
   }
 
