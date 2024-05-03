@@ -1,0 +1,7 @@
+{
+  "name": "verifyface-emgs",
+  "integrations": {
+    "capacitor": {}
+  },
+  "type": "angular"
+}

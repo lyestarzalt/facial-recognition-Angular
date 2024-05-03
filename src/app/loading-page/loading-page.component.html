@@ -1,0 +1,4 @@
+<div *ngIf="loading" class="loading-container">
+  <p>Loading...</p>
+</div>
+<img *ngIf="!loading" [src]="imageDataUrl" alt="Captured Image" style="max-width: 100%; max-height: 100vh;">

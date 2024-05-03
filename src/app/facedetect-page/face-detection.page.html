@@ -1,0 +1,9 @@
+<ion-content [fullscreen]="true">
+    <app-custom-toast #customToast></app-custom-toast> 
+
+  <div class="camera-container">
+    <video #videoElement playsinline muted autoplay class="video-element"></video>
+    <div class="face-hole" #faceHole></div>
+    <canvas #canvasElement class="canvas-element"></canvas>
+  </div>
+</ion-content>
