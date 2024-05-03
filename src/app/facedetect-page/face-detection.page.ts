@@ -101,8 +101,7 @@ export class FaceDetectionPage implements OnInit, AfterViewInit, OnDestroy {
       results.multiFaceLandmarks.length === 0
     ) {
       this.customToast.show(
-        'Please position your face within the frame.',
-        'dark',
+        'Please position your face inside frame.',
         true
       );
       this.resetAction();
@@ -164,15 +163,13 @@ export class FaceDetectionPage implements OnInit, AfterViewInit, OnDestroy {
       switch (newState) {
         case ToastState.Position:
           this.customToast.show(
-            'Please position your face within the frame.',
-            'dark',
+            'Please position your face ',
             true
           );
           break;
         case ToastState.SingleFace:
           this.customToast.show(
             'Please ensure only one face is in the frame.',
-            'dark',
             true
           );
           break;
@@ -206,8 +203,8 @@ export class FaceDetectionPage implements OnInit, AfterViewInit, OnDestroy {
       this.conditionMetSince = Date.now();
       // Show the custom toast message when the condition is first met
       this.customToast.show(
-        'Please hold still while we process your face.',
-        'dark'
+        'Please hold still.',
+       true
       );
     }
 

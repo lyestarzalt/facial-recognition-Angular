@@ -62,3 +62,22 @@ canvas {
 .green-circle {
   border-color: green;
 }
+/* Add this to your component's styles */
+.glowing-flame {
+  animation: glowFlame 2s infinite;
+  border: 8px solid transparent;
+  border-image-slice: 1;
+  border-image-source: linear-gradient(to left, rgba(255, 165, 0, 0.75), rgba(255, 140, 0, 0.75), rgba(255, 0, 0, 0.75));
+}
+
+@keyframes glowFlame {
+  0% {
+    border-image-source: linear-gradient(to left, rgba(255, 165, 0, 0.9), rgba(255, 140, 0, 0.9), rgba(255, 0, 0, 0.9));
+  }
+  50% {
+    border-image-source: linear-gradient(to left, rgba(255, 165, 0, 0.6), rgba(255, 140, 0, 0.6), rgba(255, 0, 0, 0.6));
+  }
+  100% {
+    border-image-source: linear-gradient(to left, rgba(255, 165, 0, 0.9), rgba(255, 140, 0, 0.9), rgba(255, 0, 0, 0.9));
+  }
+}
