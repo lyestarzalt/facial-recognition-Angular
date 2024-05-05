@@ -32,6 +32,7 @@ export class FaceDetectionPage implements OnInit, AfterViewInit, OnDestroy {
   @ViewChild('canvasElement') canvasElement!: ElementRef<HTMLCanvasElement>;
   @ViewChild('faceHole') faceHole!: ElementRef;
   @ViewChild('customToast') customToast!: CustomToastComponent;
+  @ViewChild('glowWrapper') glowWrapper!: ElementRef;
 
   private conditionMetSince: number | null = null;
   //! If true, visual representations of both boxes will be displayed.
@@ -53,6 +54,7 @@ export class FaceDetectionPage implements OnInit, AfterViewInit, OnDestroy {
     this.faceDetectionService.initFaceMesh();
   }
   async ngAfterViewInit(): Promise<void> {
+     console.log(this.glowWrapper);
     this.canvas = this.canvasElement.nativeElement;
     const video: HTMLVideoElement = this.videoElement.nativeElement;
 
@@ -193,6 +195,11 @@ export class FaceDetectionPage implements OnInit, AfterViewInit, OnDestroy {
    * Takes appropriate action when a face detection condition has been met.
    */
   private handleConditionMet(): void {
+     this.renderer.setStyle(
+       this.glowWrapper.nativeElement,
+       'box-shadow',
+       '0 0 15px 3px green, 0 0 25px 15px green'
+     );
     this.renderer.setStyle(
       this.faceHole.nativeElement,
       'border',
@@ -218,6 +225,11 @@ export class FaceDetectionPage implements OnInit, AfterViewInit, OnDestroy {
    * Resets the action state, clearing any conditions met or actions taken.
    */
   private resetAction(): void {
+     this.renderer.setStyle(
+       this.glowWrapper.nativeElement,
+       'box-shadow',
+       '0 0 10px 2px orange, 0 0 20px 10px orange'
+     );
     this.conditionMetSince = null;
     this.isActionTaken = false;
     // Reset to default when condition is not met
