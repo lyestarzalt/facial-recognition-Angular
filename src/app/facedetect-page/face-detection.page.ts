@@ -1,3 +1,4 @@
+import { NgModule } from '@angular/core';
 //@Author: Lyes Tarzalt
 import {
   Component,
@@ -41,7 +42,13 @@ export class FaceDetectionPage implements OnInit, AfterViewInit, OnDestroy {
 
   private isActionTaken: boolean = false;
   private canvas!: HTMLCanvasElement;
-  private minimumFaceCoverageRatio: number = 0.3;
+  //In percent
+  private minimumFaceCoverageRatio: number = 30;
+  private tooCloseThresholdPercent: number = 100;
+  private tooFarThresholdPercent: number = 30;
+
+
+
   constructor(
     private router: Router,
     private cameraService: CameraService,
@@ -80,11 +87,7 @@ export class FaceDetectionPage implements OnInit, AfterViewInit, OnDestroy {
         );
       })
       .catch((error) => {
-        this.logger.error(
-          'Error accessing the camera',
-          'Error accessing the camera',
-          error
-        );
+        this.logger.error('Error accessing the camera', error);
       });
   }
   /**
@@ -120,7 +123,7 @@ export class FaceDetectionPage implements OnInit, AfterViewInit, OnDestroy {
     video: HTMLVideoElement
   ): void {
     let newState: ToastState = ToastState.None;
-    let message = 'Please position your face inside the frame.'; // Default message
+    let message = 'Please position your face correctly.';
 
     if (results.multiFaceLandmarks && results.multiFaceLandmarks.length > 0) {
       if (results.multiFaceLandmarks.length > 1) {
@@ -138,36 +141,41 @@ export class FaceDetectionPage implements OnInit, AfterViewInit, OnDestroy {
           canvas,
           video
         );
-       const { isWithinGuidance, isTooClose, isTooFar } =
-         this.faceDetectionService.checkCondition(
-           scaledLandmarks,
-           guidanceBox,
-           this.minimumFaceCoverageRatio
-         );
-  if (this.isDebugMode) {
-    this.faceDetectionService.drawMesh(
-      results.multiFaceLandmarks[0],
-      canvas,
-      video
-    );
-  }
-       if (isTooClose) {
-         message = 'You are too close. Please move back.';
-       } else if (isTooFar) {
-         message = 'You are too far. Please move closer.';
-       } else if (isWithinGuidance) {
-         newState = ToastState.HoldStill;
-         message = 'Hold still.';
-       } else {
-         newState = ToastState.Position;
-       }
-
+        const { isWithinGuidance, isTooClose, isTooFar, positionOffset } =
+          this.faceDetectionService.checkCondition(
+            scaledLandmarks,
+            guidanceBox,
+            this.minimumFaceCoverageRatio, this.tooCloseThresholdPercent, this.tooFarThresholdPercent
+          );
+        if (this.isDebugMode) {
+          this.faceDetectionService.drawMesh(
+            results.multiFaceLandmarks[0],
+            canvas,
+            video
+          );
+        }
+        if (isWithinGuidance) {
+          newState = ToastState.HoldStill;
+          message = 'Hold still.';
+        }
+        if (isTooClose) {
+          newState = ToastState.Position;
+          message = 'You are too close. Please move back.';
+        }
+        if (isTooFar) {
+          newState = ToastState.Position;
+          message = 'You are too far. Please move closer.';
+        }
       }
     }
 
+    this.updateToast(newState, message);
+  }
+
+  private updateToast(newState: ToastState, message: string): void {
     if (newState !== this.currentToastState) {
       this.currentToastState = newState;
-      this.customToast.show(message, true); // Show toast with the appropriate message
+      this.customToast.show(message, true);
     }
 
     if (newState === ToastState.HoldStill) {

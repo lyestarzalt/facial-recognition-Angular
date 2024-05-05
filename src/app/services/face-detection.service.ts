@@ -230,17 +230,31 @@ export class FaceDetectionService {
   }
 
   /**
-   * Checks if the detected face is properly positioned within the guidance box and meets size requirements.
+   * Checks if the face bounding box satisfies the conditions of being inside the guidance box, too close, or too far.
    *
-   * @param faceBoundingBox - Coordinates defining the detected face's bounding box.
-   * @param yellowBox - Coordinates and size of the fixed guidance box.
-   * @param minimumFaceCoverageRatio - Minimum required ratio of face area to guidance box area to consider face fully within the box.
-   * @returns {CheckResult} - Result containing whether the face is within the guidance, too close, too far, and its positional offset relative to center.
+   * @param faceBoundingBox The bounding box of the detected face.
+   * @param yellowBox The parameters defining the guidance box.
+   * @param minimumCoveragePercent The minimum percentage of the guidance box that the face must cover to be considered inside.
+   * @param tooCloseThresholdPercent The percentage above which the face is considered too close.
+   * @param tooFarThresholdPercent The percentage below which the face is considered too far.
+   * @returns A result object indicating various states of position and size relationship between the face and guidance box.
+   */
+  /**
+   * Checks if the face bounding box satisfies the conditions of being inside the guidance box, too close, or too far.
+   *
+   * @param faceBoundingBox The bounding box of the detected face.
+   * @param yellowBox The parameters defining the guidance box.
+   * @param minimumCoveragePercent The minimum percentage of the guidance box that the face must cover to be considered inside.
+   * @param tooCloseThresholdPercent The percentage above which the face is considered too close.
+   * @param tooFarThresholdPercent The percentage below which the face is considered too far.
+   * @returns A result object indicating various states of position and size relationship between the face and guidance box.
    */
   checkCondition(
     faceBoundingBox: FaceDetectionArea,
     yellowBox: GuidanceBox,
-    minimumFaceCoverageRatio: number
+    minimumCoveragePercent: number,
+    tooCloseThresholdPercent: number,
+    tooFarThresholdPercent: number
   ): CheckResult {
     if (!faceBoundingBox) {
       return {
@@ -259,29 +273,26 @@ export class FaceDetectionService {
     const faceCenterX = (bottomRightX + topLeftX) / 2;
     const faceCenterY = (bottomRightY + topLeftY) / 2;
 
-    const isTopLeftInside = topLeftX >= centerX && topLeftY >= centerY;
-    const isTopRightInside =
-      bottomRightX <= centerX + size && topLeftY >= centerY;
-    const isBottomLeftInside =
-      topLeftX >= centerX && bottomRightY <= centerY + size;
-    const isBottomRightInside =
-      bottomRightX <= centerX + size && bottomRightY <= centerY + size;
     const allCornersInside =
-      isTopLeftInside &&
-      isTopRightInside &&
-      isBottomLeftInside &&
-      isBottomRightInside;
+      topLeftX >= centerX &&
+      topLeftY >= centerY &&
+      bottomRightX <= centerX + size &&
+      topLeftY >= centerY &&
+      topLeftX >= centerX &&
+      bottomRightY <= centerY + size &&
+      bottomRightX <= centerX + size &&
+      bottomRightY <= centerY + size;
 
     const faceBoundingBoxArea = faceWidth * faceHeight;
     const guidanceBoxArea = size * size;
     const meetsMinimumCoverageRequirement =
-      faceBoundingBoxArea >= minimumFaceCoverageRatio * guidanceBoxArea;
+      faceBoundingBoxArea >= (minimumCoveragePercent / 100) * guidanceBoxArea;
 
-    // Determine size difference
-    const sizeRatio = Math.sqrt(faceBoundingBoxArea / guidanceBoxArea);
-    const isTooClose = sizeRatio > 1.0;
-    const isTooFar = sizeRatio < 0.8; // You might adjust this threshold based on testing
-   
+    // Convert percentages to ratios for size comparison
+    const sizeRatio = (faceWidth * faceHeight) / (size * size);
+    const isTooClose = sizeRatio > tooCloseThresholdPercent / 100;
+    const isTooFar = sizeRatio < tooFarThresholdPercent / 100;
+
     // Calculate position offset
     const positionOffset = {
       x: faceCenterX - (centerX + size / 2),
@@ -295,6 +306,7 @@ export class FaceDetectionService {
       positionOffset,
     };
   }
+
   /**
    * Makes the canvas the same size as the video.
    * Sets canvas width and height to match the video's.
