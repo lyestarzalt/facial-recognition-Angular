@@ -41,7 +41,7 @@ export class FaceDetectionPage implements OnInit, AfterViewInit, OnDestroy {
 
   private isActionTaken: boolean = false;
   private canvas!: HTMLCanvasElement;
-  private percentDetect: number = 0.3;
+  private minimumFaceCoverageRatio: number = 0.3;
   constructor(
     private router: Router,
     private cameraService: CameraService,
@@ -54,7 +54,7 @@ export class FaceDetectionPage implements OnInit, AfterViewInit, OnDestroy {
     this.faceDetectionService.initFaceMesh();
   }
   async ngAfterViewInit(): Promise<void> {
-     console.log(this.glowWrapper);
+    console.log(this.glowWrapper);
     this.canvas = this.canvasElement.nativeElement;
     const video: HTMLVideoElement = this.videoElement.nativeElement;
 
@@ -102,10 +102,7 @@ export class FaceDetectionPage implements OnInit, AfterViewInit, OnDestroy {
       !results.multiFaceLandmarks ||
       results.multiFaceLandmarks.length === 0
     ) {
-      this.customToast.show(
-        'Please position your face inside frame.',
-        true
-      );
+      this.customToast.show('Please position your face inside frame.', true);
       this.resetAction();
       return;
     }
@@ -123,10 +120,12 @@ export class FaceDetectionPage implements OnInit, AfterViewInit, OnDestroy {
     video: HTMLVideoElement
   ): void {
     let newState: ToastState = ToastState.None;
+    let message = 'Please position your face inside the frame.'; // Default message
 
     if (results.multiFaceLandmarks && results.multiFaceLandmarks.length > 0) {
       if (results.multiFaceLandmarks.length > 1) {
         newState = ToastState.SingleFace;
+        message = 'Please ensure only one face is in the frame.';
       } else {
         const faceLandmarks = results.multiFaceLandmarks[0];
         const scaledLandmarks =
@@ -139,49 +138,36 @@ export class FaceDetectionPage implements OnInit, AfterViewInit, OnDestroy {
           canvas,
           video
         );
-        const conditionMet = this.faceDetectionService.checkCondition(
-          scaledLandmarks,
-          guidanceBox,
-          this.percentDetect
-        );
-        if (this.isDebugMode) {
-          this.faceDetectionService.drawMesh(
-            results.multiFaceLandmarks[0],
-            canvas,
-            video
-          );
-        }
-        newState = conditionMet ? ToastState.HoldStill : ToastState.Position;
+       const { isWithinGuidance, isTooClose, isTooFar } =
+         this.faceDetectionService.checkCondition(
+           scaledLandmarks,
+           guidanceBox,
+           this.minimumFaceCoverageRatio
+         );
+  if (this.isDebugMode) {
+    this.faceDetectionService.drawMesh(
+      results.multiFaceLandmarks[0],
+      canvas,
+      video
+    );
+  }
+       if (isTooClose) {
+         message = 'You are too close. Please move back.';
+       } else if (isTooFar) {
+         message = 'You are too far. Please move closer.';
+       } else if (isWithinGuidance) {
+         newState = ToastState.HoldStill;
+         message = 'Hold still.';
+       } else {
+         newState = ToastState.Position;
+       }
+
       }
-    } else {
-      newState = ToastState.Position; // Assume position state if no faces are detected to keep showing the message
     }
 
     if (newState !== this.currentToastState) {
       this.currentToastState = newState;
-
-      // Only show the toast if entering a new state,
-      // don't hide it unless moving to a different state
-      switch (newState) {
-        case ToastState.Position:
-          this.customToast.show(
-            'Please position your face ',
-            true
-          );
-          break;
-        case ToastState.SingleFace:
-          this.customToast.show(
-            'Please ensure only one face is in the frame.',
-            true
-          );
-          break;
-        case ToastState.HoldStill:
-          // Handled by handleConditionMet; no action needed here
-          break;
-        default:
-          // TODO If newState is None, consider hiding the toast
-          break;
-      }
+      this.customToast.show(message, true); // Show toast with the appropriate message
     }
 
     if (newState === ToastState.HoldStill) {
@@ -195,24 +181,21 @@ export class FaceDetectionPage implements OnInit, AfterViewInit, OnDestroy {
    * Takes appropriate action when a face detection condition has been met.
    */
   private handleConditionMet(): void {
-     this.renderer.setStyle(
-       this.glowWrapper.nativeElement,
-       'box-shadow',
-       '0 0 15px 3px green, 0 0 25px 15px green'
-     );
     this.renderer.setStyle(
+      this.glowWrapper.nativeElement,
+      'box-shadow',
+      '0 0 15px 3px green, 0 0 25px 15px green'
+    );
+    /*     this.renderer.setStyle(
       this.faceHole.nativeElement,
       'border',
       '8px solid green'
     );
-
+ */
     if (this.conditionMetSince === null) {
       this.conditionMetSince = Date.now();
       // Show the custom toast message when the condition is first met
-      this.customToast.show(
-        'Please hold still.',
-       true
-      );
+      this.customToast.show('Please hold still.', true);
     }
 
     if (!this.isActionTaken && Date.now() - this.conditionMetSince >= 2000) {
@@ -225,11 +208,11 @@ export class FaceDetectionPage implements OnInit, AfterViewInit, OnDestroy {
    * Resets the action state, clearing any conditions met or actions taken.
    */
   private resetAction(): void {
-     this.renderer.setStyle(
-       this.glowWrapper.nativeElement,
-       'box-shadow',
-       '0 0 10px 2px orange, 0 0 20px 10px orange'
-     );
+    this.renderer.setStyle(
+      this.glowWrapper.nativeElement,
+      'box-shadow',
+      '0 0 10px 2px orange, 0 0 20px 10px orange'
+    );
     this.conditionMetSince = null;
     this.isActionTaken = false;
     // Reset to default when condition is not met

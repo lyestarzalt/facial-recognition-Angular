@@ -20,6 +20,12 @@ interface LandmarkPoint {
   y: number;
   z?: number;
 }
+interface CheckResult {
+  isWithinGuidance: boolean;
+  isTooClose: boolean;
+  isTooFar: boolean;
+  positionOffset: { x: number; y: number };
+}
 
 @Injectable({
   providedIn: 'root',
@@ -49,8 +55,6 @@ export class FaceDetectionService {
         console.log('FaceMesh is ready and receiving results');
         resolve(); // Resolve once we are sure FaceMesh is operational
       });
-
-  
     });
   }
 
@@ -226,23 +230,34 @@ export class FaceDetectionService {
   }
 
   /**
-   * Checks if the face bounding box satisfies the condition of being inside the specified guidance box.
+   * Checks if the detected face is properly positioned within the guidance box and meets size requirements.
    *
-   * @param faceBoundingBox The bounding box of the detected face
-   * @param yellowBox The parameters defining the guidance box
-   * @returns A boolean value indicating whether the face bounding box satisfies the condition of being inside the guidance box.
+   * @param faceBoundingBox - Coordinates defining the detected face's bounding box.
+   * @param yellowBox - Coordinates and size of the fixed guidance box.
+   * @param minimumFaceCoverageRatio - Minimum required ratio of face area to guidance box area to consider face fully within the box.
+   * @returns {CheckResult} - Result containing whether the face is within the guidance, too close, too far, and its positional offset relative to center.
    */
   checkCondition(
     faceBoundingBox: FaceDetectionArea,
     yellowBox: GuidanceBox,
-    percentDetect: number
-  ): boolean {
+    minimumFaceCoverageRatio: number
+  ): CheckResult {
     if (!faceBoundingBox) {
-      return false;
+      return {
+        isWithinGuidance: false,
+        isTooClose: false,
+        isTooFar: false,
+        positionOffset: { x: 0, y: 0 },
+      };
     }
 
     const { topLeftX, topLeftY, bottomRightX, bottomRightY } = faceBoundingBox;
     const { centerX, centerY, size } = yellowBox;
+
+    const faceWidth = bottomRightX - topLeftX;
+    const faceHeight = bottomRightY - topLeftY;
+    const faceCenterX = (bottomRightX + topLeftX) / 2;
+    const faceCenterY = (bottomRightY + topLeftY) / 2;
 
     const isTopLeftInside = topLeftX >= centerX && topLeftY >= centerY;
     const isTopRightInside =
@@ -251,21 +266,34 @@ export class FaceDetectionService {
       topLeftX >= centerX && bottomRightY <= centerY + size;
     const isBottomRightInside =
       bottomRightX <= centerX + size && bottomRightY <= centerY + size;
-
     const allCornersInside =
       isTopLeftInside &&
       isTopRightInside &&
       isBottomLeftInside &&
       isBottomRightInside;
 
-    // Check if the face bounding box occupies at least 80% of the central region
-    const faceArea = (bottomRightX - topLeftX) * (bottomRightY - topLeftY);
-    const centralRegionArea = size * size;
-    const occupiesAtLeast80Percent =
-      faceArea >= percentDetect * centralRegionArea;
+    const faceBoundingBoxArea = faceWidth * faceHeight;
+    const guidanceBoxArea = size * size;
+    const meetsMinimumCoverageRequirement =
+      faceBoundingBoxArea >= minimumFaceCoverageRatio * guidanceBoxArea;
 
-    // Return the result based on the conditions
-    return allCornersInside && occupiesAtLeast80Percent;
+    // Determine size difference
+    const sizeRatio = Math.sqrt(faceBoundingBoxArea / guidanceBoxArea);
+    const isTooClose = sizeRatio > 1.0;
+    const isTooFar = sizeRatio < 0.8; // You might adjust this threshold based on testing
+   
+    // Calculate position offset
+    const positionOffset = {
+      x: faceCenterX - (centerX + size / 2),
+      y: faceCenterY - (centerY + size / 2),
+    };
+
+    return {
+      isWithinGuidance: allCornersInside && meetsMinimumCoverageRequirement,
+      isTooClose,
+      isTooFar,
+      positionOffset,
+    };
   }
   /**
    * Makes the canvas the same size as the video.
