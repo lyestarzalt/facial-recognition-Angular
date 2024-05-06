@@ -11,7 +11,7 @@ import { Component, Input } from '@angular/core';
     `
       .custom-toast {
         position: fixed;
-        top: 10%; /* Padding from the top of the screen */
+        top: 15%; /* Padding from the top of the screen */
         left: 50%;
         transform: translateX(-50%);
         background-color: orange; /* Orange background */
@@ -20,9 +20,9 @@ import { Component, Input } from '@angular/core';
         border-radius: 5px;
         z-index: 1000;
         text-align: center;
-        max-width: 80%; /* Max width to prevent overly wide messages */
+        max-width: 50%; /* Max width to prevent overly wide messages */
         box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2); /* Enhanced shadow for elevation effect */
-        font-size: 18px; /* Larger text size */
+        font-size: 20px; /* Larger text size */
         font-weight: bold; /* Bolder text for better readability */
       }
     `,

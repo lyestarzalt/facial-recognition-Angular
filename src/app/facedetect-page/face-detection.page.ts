@@ -37,17 +37,15 @@ export class FaceDetectionPage implements OnInit, AfterViewInit, OnDestroy {
 
   private conditionMetSince: number | null = null;
   //! If true, visual representations of both boxes will be displayed.
-  private isDebugMode: boolean = true;
+  private isDebugMode: boolean = false;
   private currentToastState: ToastState = ToastState.None;
 
   private isActionTaken: boolean = false;
   private canvas!: HTMLCanvasElement;
   //In percent
-  private minimumFaceCoverageRatio: number = 30;
+  private minimumFaceCoveragePercent: number = 30;
   private tooCloseThresholdPercent: number = 100;
   private tooFarThresholdPercent: number = 30;
-
-
 
   constructor(
     private router: Router,
@@ -105,7 +103,7 @@ export class FaceDetectionPage implements OnInit, AfterViewInit, OnDestroy {
       !results.multiFaceLandmarks ||
       results.multiFaceLandmarks.length === 0
     ) {
-      this.customToast.show('Please position your face inside frame.', true);
+this.customToast.show('Align your face within the frame.');
       this.resetAction();
       return;
     }
@@ -123,12 +121,12 @@ export class FaceDetectionPage implements OnInit, AfterViewInit, OnDestroy {
     video: HTMLVideoElement
   ): void {
     let newState: ToastState = ToastState.None;
-    let message = 'Please position your face correctly.';
+    let message = 'Position your face within the frame.';
 
     if (results.multiFaceLandmarks && results.multiFaceLandmarks.length > 0) {
       if (results.multiFaceLandmarks.length > 1) {
         newState = ToastState.SingleFace;
-        message = 'Please ensure only one face is in the frame.';
+        message = 'Only one face, please';
       } else {
         const faceLandmarks = results.multiFaceLandmarks[0];
         const scaledLandmarks =
@@ -145,7 +143,9 @@ export class FaceDetectionPage implements OnInit, AfterViewInit, OnDestroy {
           this.faceDetectionService.checkCondition(
             scaledLandmarks,
             guidanceBox,
-            this.minimumFaceCoverageRatio, this.tooCloseThresholdPercent, this.tooFarThresholdPercent
+            this.minimumFaceCoveragePercent,
+            this.tooCloseThresholdPercent,
+            this.tooFarThresholdPercent
           );
         if (this.isDebugMode) {
           this.faceDetectionService.drawMesh(
@@ -160,11 +160,11 @@ export class FaceDetectionPage implements OnInit, AfterViewInit, OnDestroy {
         }
         if (isTooClose) {
           newState = ToastState.Position;
-          message = 'You are too close. Please move back.';
+          message = 'Too close! Move back a bit.'
         }
         if (isTooFar) {
           newState = ToastState.Position;
-          message = 'You are too far. Please move closer.';
+          message = 'A bit too far! Step closer, please.';
         }
       }
     }
@@ -175,7 +175,7 @@ export class FaceDetectionPage implements OnInit, AfterViewInit, OnDestroy {
   private updateToast(newState: ToastState, message: string): void {
     if (newState !== this.currentToastState) {
       this.currentToastState = newState;
-      this.customToast.show(message, true);
+      this.customToast.show(message);
     }
 
     if (newState === ToastState.HoldStill) {
@@ -203,7 +203,7 @@ export class FaceDetectionPage implements OnInit, AfterViewInit, OnDestroy {
     if (this.conditionMetSince === null) {
       this.conditionMetSince = Date.now();
       // Show the custom toast message when the condition is first met
-      this.customToast.show('Please hold still.', true);
+      this.customToast.show('Hold still, please.');
     }
 
     if (!this.isActionTaken && Date.now() - this.conditionMetSince >= 2000) {
@@ -219,7 +219,7 @@ export class FaceDetectionPage implements OnInit, AfterViewInit, OnDestroy {
     this.renderer.setStyle(
       this.glowWrapper.nativeElement,
       'box-shadow',
-      '0 0 10px 2px orange, 0 0 20px 10px orange'
+      '0 0 10px 2px grey, 0 0 20px 10px grey'
     );
     this.conditionMetSince = null;
     this.isActionTaken = false;
