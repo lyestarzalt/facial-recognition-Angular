@@ -155,9 +155,9 @@ export class FaceDetectionService {
       window.innerWidth || 0
     );
 
-    // Calculate the size of the central region (guidance box) as 70% of the viewport width
+    // Calculate the size of the central region (guidance box) as 90% of the viewport width
     // following simulate the face hole.
-    const centralRegionSize = 0.8 * vw;
+    const centralRegionSize = 0.9 * vw;
 
     // Calculate the coordinates of the top-left corner of the central region
     const centerX = (canvas.width - centralRegionSize) / 2;

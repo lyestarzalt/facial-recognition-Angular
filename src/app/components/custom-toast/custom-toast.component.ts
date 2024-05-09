@@ -7,7 +7,6 @@ import { Component, Input } from '@angular/core';
 
 
 
-
 @Component({
   selector: 'app-custom-toast',
   template: `
@@ -19,19 +18,21 @@ import { Component, Input } from '@angular/core';
     `
       .custom-toast {
         position: fixed;
-        top: 15%; /* Padding from the top of the screen */
+        top: 10%; /* Padding from the top of the screen */
         left: 50%;
         transform: translateX(-50%);
-        background-color: orange; /* Orange background */
-        color: white; /* White text */
-        padding: 10px 20px; /* Increase padding */
-        border-radius: 5px;
+        background-color: #FF8E24; /* Neutral dark background */
+        color: #f0f0f0; /* Soft white text */
+        padding: 12px 24px; /* Padding adjusted for better spacing */
+        border-radius: 8px; /* Slightly larger border radius for a smoother look */
         z-index: 1000;
         text-align: center;
-        max-width: 50%; /* Max width to prevent overly wide messages */
-        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2); /* Enhanced shadow for elevation effect */
-        font-size: 20px; /* Larger text size */
-        font-weight: bold; /* Bolder text for better readability */
+        width: 300px; /* Fixed width */
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3); /* Subtle shadow for depth */
+        font-size: 18px; /* Standard text size */
+        font-weight: 500; /* Medium font weight for better legibility */
+        word-wrap: break-word; /* Ensures text wraps within the container */
+        overflow: hidden; /* Prevents text from spilling out */
       }
     `,
   ],

@@ -132,23 +132,25 @@ export class FaceDetectionPage implements OnInit, AfterViewInit, OnDestroy {
     video: HTMLVideoElement
   ): void {
     const brightness = this.calculateBrightness(video);
-console.log(brightness)
-
+    console.log(brightness);
+ if (brightness < 100) {
+this.customToast.show('Please turn on more lights. 💡', true);
+   this.resetAction();
+   return
+ }
     if (
       !results.multiFaceLandmarks ||
       results.multiFaceLandmarks.length === 0
     ) {
-      this.customToast.show('Align your face within the frame.');
+      // no face detected
+      //this.customToast.show('Align your face within the frame.', true);
       this.resetAction();
       // Continue even if no faces are detected
-      if (brightness < 100) {
-        this.customToast.show('Room is too dark. Please increase the light.');
-        this.resetAction();
-      }
+
       return;
     }
 
-    this.handleFaceDetectionResults(results, canvas, video);
+    this.handleFaceDetectionResults(results, canvas, video, brightness);
   }
 
   /**
@@ -160,10 +162,11 @@ console.log(brightness)
   private handleFaceDetectionResults(
     results: any,
     canvas: HTMLCanvasElement,
-    video: HTMLVideoElement
+    video: HTMLVideoElement,
+    brightness: number
   ): void {
     let newState: ToastState = ToastState.None;
-    let message = 'Position your face within the frame.';
+    let message = 'Please align your face within the frame. 👤';
 
     if (results.multiFaceLandmarks && results.multiFaceLandmarks.length > 0) {
       if (results.multiFaceLandmarks.length > 1) {
@@ -190,7 +193,6 @@ console.log(brightness)
             this.tooFarThresholdPercent
           );
 
-
         if (this.isDebugMode) {
           this.faceDetectionService.drawMesh(
             results.multiFaceLandmarks[0],
@@ -198,9 +200,10 @@ console.log(brightness)
             video
           );
         }
-        if (isWithinGuidance) {
+        if (isWithinGuidance && brightness > 100) {
           newState = ToastState.HoldStill;
-          message = 'Hold still.';
+message = 'Hold still. 📸';
+
         }
         if (isTooClose) {
           newState = ToastState.Position;
@@ -208,29 +211,32 @@ console.log(brightness)
         }
         if (isTooFar) {
           newState = ToastState.Position;
-          message = 'A bit too far! Step closer, please.';
+          message = 'Too far! Step closer.';
         }
-
       }
     }
 
     this.updateToast(newState, message);
   }
 
-  private updateToast(newState: ToastState, message: string): void {
-    if (newState !== this.currentToastState) {
+  private updateToast(
+    newState: ToastState,
+    message: string,
+    persist: boolean = true
+  ): void {
+    // Always update if new state demands persistence (like low brightness)
+    if (newState !== this.currentToastState || persist) {
       this.currentToastState = newState;
-      this.customToast.show(message);
-      this.cdr.detectChanges(); // Force change detection
-    }
+      this.customToast.show(message, persist);
+      //this.cdr.detectChanges();
 
-    if (newState === ToastState.HoldStill) {
-      this.handleConditionMet();
-    } else {
-      this.resetAction();
+      if (newState === ToastState.HoldStill) {
+        this.handleConditionMet();
+      } else {
+        this.resetAction();
+      }
     }
   }
-
   /**
    * Takes appropriate action when a face detection condition has been met.
    */
@@ -249,7 +255,7 @@ console.log(brightness)
     if (this.conditionMetSince === null) {
       this.conditionMetSince = Date.now();
       // Show the custom toast message when the condition is first met
-      this.customToast.show('Hold still, please.');
+
     }
 
     if (!this.isActionTaken && Date.now() - this.conditionMetSince >= 2000) {
@@ -265,7 +271,7 @@ console.log(brightness)
     this.renderer.setStyle(
       this.glowWrapper.nativeElement,
       'box-shadow',
-      '0 0 10px 2px grey, 0 0 20px 10px grey'
+      '0 0 0px 0px transparent, 0 000px 10px transparent'
     );
     this.conditionMetSince = null;
     this.isActionTaken = false;
