@@ -3,9 +3,11 @@
 
   <div class="camera-container">
     <video #videoElement playsinline muted autoplay class="video-element"></video>
-<div class="glow-wrapper"  #glowWrapper>
+    <div class="glow-wrapper" #glowWrapper>
       <div class="face-hole" #faceHole></div>
     </div>
     <canvas #canvasElement class="canvas-element"></canvas>
+    <!-- Additional hidden canvas for brightness calculation -->
+    <canvas #brightnessCanvas style="display: none;" width="640" height="480"></canvas>
   </div>
 </ion-content>

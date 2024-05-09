@@ -8,6 +8,7 @@ import {
   AfterViewInit,
   OnDestroy,
   Renderer2,
+  ChangeDetectorRef,
 } from '@angular/core';
 
 import { FaceDetectionService } from '@services/face-detection.service';
@@ -34,10 +35,12 @@ export class FaceDetectionPage implements OnInit, AfterViewInit, OnDestroy {
   @ViewChild('faceHole') faceHole!: ElementRef;
   @ViewChild('customToast') customToast!: CustomToastComponent;
   @ViewChild('glowWrapper') glowWrapper!: ElementRef;
+  @ViewChild('brightnessCanvas')
+  brightnessCanvas!: ElementRef<HTMLCanvasElement>;
 
   private conditionMetSince: number | null = null;
   //! If true, visual representations of both boxes will be displayed.
-  private isDebugMode: boolean = false;
+  private isDebugMode: boolean = true;
   private currentToastState: ToastState = ToastState.None;
 
   private isActionTaken: boolean = false;
@@ -52,14 +55,14 @@ export class FaceDetectionPage implements OnInit, AfterViewInit, OnDestroy {
     private cameraService: CameraService,
     private logger: LoggerService,
     private renderer: Renderer2,
-    private faceDetectionService: FaceDetectionService
+    private faceDetectionService: FaceDetectionService,
+    private cdr: ChangeDetectorRef
   ) {}
 
   ngOnInit(): void {
     this.faceDetectionService.initFaceMesh();
   }
   async ngAfterViewInit(): Promise<void> {
-    console.log(this.glowWrapper);
     this.canvas = this.canvasElement.nativeElement;
     const video: HTMLVideoElement = this.videoElement.nativeElement;
 
@@ -73,6 +76,35 @@ export class FaceDetectionPage implements OnInit, AfterViewInit, OnDestroy {
 
   ngOnDestroy(): void {
     this.cameraService.stopCamera();
+  }
+
+  private calculateBrightness(video: HTMLVideoElement): number {
+    const brightnessCanvas = this.brightnessCanvas.nativeElement;
+    const context = brightnessCanvas.getContext('2d');
+
+    // Reduce the size of the image processed
+    const scaleFactor = 0.1; // Reduce the size to 25%
+    const scaledWidth = video.videoWidth * scaleFactor;
+    const scaledHeight = video.videoHeight * scaleFactor;
+
+    brightnessCanvas.width = scaledWidth;
+    brightnessCanvas.height = scaledHeight;
+    context!.drawImage(video, 0, 0, scaledWidth, scaledHeight);
+
+    const imageData = context!.getImageData(0, 0, scaledWidth, scaledHeight);
+    const data = imageData.data;
+    let sumLuminance = 0;
+
+    for (let i = 0; i < data.length; i += 4) {
+      const r = data[i];
+      const g = data[i + 1];
+      const b = data[i + 2];
+      const luminance = 0.299 * r + 0.587 * g + 0.114 * b;
+      sumLuminance += luminance;
+    }
+
+    const numPixels = scaledWidth * scaledHeight;
+    return numPixels ? sumLuminance / numPixels : 0;
   }
 
   private startVideo(video: HTMLVideoElement): void {
@@ -99,16 +131,26 @@ export class FaceDetectionPage implements OnInit, AfterViewInit, OnDestroy {
     canvas: HTMLCanvasElement,
     video: HTMLVideoElement
   ): void {
+    const brightness = this.calculateBrightness(video);
+console.log(brightness)
+
     if (
       !results.multiFaceLandmarks ||
       results.multiFaceLandmarks.length === 0
     ) {
-this.customToast.show('Align your face within the frame.');
+      this.customToast.show('Align your face within the frame.');
       this.resetAction();
+      // Continue even if no faces are detected
+      if (brightness < 100) {
+        this.customToast.show('Room is too dark. Please increase the light.');
+        this.resetAction();
+      }
       return;
     }
+
     this.handleFaceDetectionResults(results, canvas, video);
   }
+
   /**
    * Analyzes detection results and updates application state and UI accordingly.
    * @param results Detection results to analyze.
@@ -147,6 +189,8 @@ this.customToast.show('Align your face within the frame.');
             this.tooCloseThresholdPercent,
             this.tooFarThresholdPercent
           );
+
+
         if (this.isDebugMode) {
           this.faceDetectionService.drawMesh(
             results.multiFaceLandmarks[0],
@@ -160,12 +204,13 @@ this.customToast.show('Align your face within the frame.');
         }
         if (isTooClose) {
           newState = ToastState.Position;
-          message = 'Too close! Move back a bit.'
+          message = 'Too close! Move back a bit.';
         }
         if (isTooFar) {
           newState = ToastState.Position;
           message = 'A bit too far! Step closer, please.';
         }
+
       }
     }
 
@@ -176,6 +221,7 @@ this.customToast.show('Align your face within the frame.');
     if (newState !== this.currentToastState) {
       this.currentToastState = newState;
       this.customToast.show(message);
+      this.cdr.detectChanges(); // Force change detection
     }
 
     if (newState === ToastState.HoldStill) {
