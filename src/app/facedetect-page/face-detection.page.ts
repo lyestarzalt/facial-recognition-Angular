@@ -76,6 +76,7 @@ export class FaceDetectionPage implements OnInit, AfterViewInit, OnDestroy {
 
   ngOnDestroy(): void {
     this.cameraService.stopCamera();
+    this.faceDetectionService.stopDetection();
   }
 
   private calculateBrightness(video: HTMLVideoElement): number {
@@ -167,7 +168,6 @@ this.customToast.show('Please turn on more lights. 💡', true);
   ): void {
     let newState: ToastState = ToastState.None;
     let message = 'Please align your face within the frame. 👤';
-
     if (results.multiFaceLandmarks && results.multiFaceLandmarks.length > 0) {
       if (results.multiFaceLandmarks.length > 1) {
         newState = ToastState.SingleFace;

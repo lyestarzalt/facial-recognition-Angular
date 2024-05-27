@@ -32,6 +32,7 @@ interface CheckResult {
 })
 export class FaceDetectionService {
   private faceMesh!: FaceMesh;
+  private frameRequestId: number | null = null;
 
   constructor(private logger: LoggerService) {}
   initFaceMesh(): Promise<void> {
@@ -79,16 +80,27 @@ export class FaceDetectionService {
       const onFrame = async () => {
         try {
           await this.faceMesh.send({ image: videoElement });
-          requestAnimationFrame(onFrame);
+          this.frameRequestId = requestAnimationFrame(onFrame);
         } catch (error) {
           this.logger.error('Error in face detection frame processing', error);
           reject(error);
         }
       };
 
-      requestAnimationFrame(onFrame);
+      this.frameRequestId = requestAnimationFrame(onFrame);
       resolve(); // Indicate that the setup is complete
     });
+  }
+
+  stopDetection(): void {
+
+    if (this.frameRequestId !== null) {
+      cancelAnimationFrame(this.frameRequestId);
+      this.frameRequestId = null;
+      this.logger.info('Face detection stopped.');
+    } else {
+      this.logger.warn('No face detection process found to stop.');
+    }
   }
 
   calculateFaceRegionBox(
