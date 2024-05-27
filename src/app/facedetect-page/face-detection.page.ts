@@ -10,7 +10,7 @@ import {
   Renderer2,
   ChangeDetectorRef,
 } from '@angular/core';
-
+import { environment } from 'src/environments/environment';
 import { FaceDetectionService } from '@services/face-detection.service';
 import { NavigationExtras, Router } from '@angular/router';
 import { CameraService } from '@services/camera.service';
@@ -40,7 +40,7 @@ export class FaceDetectionPage implements OnInit, AfterViewInit, OnDestroy {
 
   private conditionMetSince: number | null = null;
   //! If true, visual representations of both boxes will be displayed.
-  private isDebugMode: boolean = true;
+  private isDebugMode: boolean = !environment.production;
   private currentToastState: ToastState = ToastState.None;
 
   private isActionTaken: boolean = false;
@@ -79,35 +79,6 @@ export class FaceDetectionPage implements OnInit, AfterViewInit, OnDestroy {
     this.faceDetectionService.stopDetection();
   }
 
-  private calculateBrightness(video: HTMLVideoElement): number {
-    const brightnessCanvas = this.brightnessCanvas.nativeElement;
-    const context = brightnessCanvas.getContext('2d');
-
-    // Reduce the size of the image processed
-    const scaleFactor = 0.1; // Reduce the size to 25%
-    const scaledWidth = video.videoWidth * scaleFactor;
-    const scaledHeight = video.videoHeight * scaleFactor;
-
-    brightnessCanvas.width = scaledWidth;
-    brightnessCanvas.height = scaledHeight;
-    context!.drawImage(video, 0, 0, scaledWidth, scaledHeight);
-
-    const imageData = context!.getImageData(0, 0, scaledWidth, scaledHeight);
-    const data = imageData.data;
-    let sumLuminance = 0;
-
-    for (let i = 0; i < data.length; i += 4) {
-      const r = data[i];
-      const g = data[i + 1];
-      const b = data[i + 2];
-      const luminance = 0.299 * r + 0.587 * g + 0.114 * b;
-      sumLuminance += luminance;
-    }
-
-    const numPixels = scaledWidth * scaledHeight;
-    return numPixels ? sumLuminance / numPixels : 0;
-  }
-
   private startVideo(video: HTMLVideoElement): void {
     this.cameraService
       .startCamera(video)
@@ -132,13 +103,16 @@ export class FaceDetectionPage implements OnInit, AfterViewInit, OnDestroy {
     canvas: HTMLCanvasElement,
     video: HTMLVideoElement
   ): void {
-    const brightness = this.calculateBrightness(video);
+    const brightness = this.cameraService.calculateBrightness(
+      video,
+      this.brightnessCanvas.nativeElement
+    );
     //console.log(brightness);
- if (brightness < 100) {
-this.customToast.show('Please turn on more lights. 💡', true);
-   this.resetAction();
-   return
- }
+    if (brightness < 100) {
+      this.customToast.show('Please turn on more lights. 💡', true);
+      this.resetAction();
+      return;
+    }
     if (
       !results.multiFaceLandmarks ||
       results.multiFaceLandmarks.length === 0
@@ -202,8 +176,7 @@ this.customToast.show('Please turn on more lights. 💡', true);
         }
         if (isWithinGuidance && brightness > 100) {
           newState = ToastState.HoldStill;
-message = 'Hold still. 📸';
-
+          message = 'Hold still. 📸';
         }
         if (isTooClose) {
           newState = ToastState.Position;
@@ -255,7 +228,6 @@ message = 'Hold still. 📸';
     if (this.conditionMetSince === null) {
       this.conditionMetSince = Date.now();
       // Show the custom toast message when the condition is first met
-
     }
 
     if (!this.isActionTaken && Date.now() - this.conditionMetSince >= 2000) {

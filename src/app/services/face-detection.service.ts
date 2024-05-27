@@ -35,6 +35,15 @@ export class FaceDetectionService {
   private frameRequestId: number | null = null;
 
   constructor(private logger: LoggerService) {}
+
+  /**
+   * Initializes the FaceMesh object and sets its options.
+   * Resolves the promise once the FaceMesh is operational and receiving results.
+   *
+   * @return {Promise<void>} A promise that resolves when the FaceMesh is ready.
+   * @memberof CameraService
+   */
+
   initFaceMesh(): Promise<void> {
     return new Promise((resolve, reject) => {
       if (this.faceMesh) {
@@ -54,7 +63,7 @@ export class FaceDetectionService {
 
       this.faceMesh.onResults((results) => {
         console.log('FaceMesh is ready and receiving results');
-        resolve(); // Resolve once we are sure FaceMesh is operational
+        resolve();
       });
     });
   }
@@ -88,12 +97,15 @@ export class FaceDetectionService {
       };
 
       this.frameRequestId = requestAnimationFrame(onFrame);
-      resolve(); // Indicate that the setup is complete
+      resolve();
     });
   }
 
+  /**
+   * Stops the face detection process by cancelling the animation frame request.
+   * @memberof CameraService
+   */
   stopDetection(): void {
-
     if (this.frameRequestId !== null) {
       cancelAnimationFrame(this.frameRequestId);
       this.frameRequestId = null;
@@ -102,6 +114,17 @@ export class FaceDetectionService {
       this.logger.warn('No face detection process found to stop.');
     }
   }
+  /**
+   * Calculates the bounding box for the face region based on the given face landmarks.
+   * The bounding box coordinates are adjusted according to the aspect ratio differences
+   * between the video element and the canvas.
+   *
+   * @param {LandmarkPoint[]} faceLandmarks - Array of face landmark points.
+   * @param {HTMLCanvasElement} canvas - The canvas element used for drawing.
+   * @param {HTMLVideoElement} videoElement - The video element providing the feed.
+   * @return {FaceDetectionArea} The bounding box coordinates of the face region.
+   * @memberof CameraService
+   */
 
   calculateFaceRegionBox(
     faceLandmarks: LandmarkPoint[],
@@ -154,6 +177,15 @@ export class FaceDetectionService {
       bottomRightY: bottomRightY,
     };
   }
+  /**
+   * Calculates the coordinates and size of a fixed central region (guidance box) on the canvas.
+   * The central region size is set to 90% of the viewport width, centered on the canvas.
+   *
+   * @param {HTMLCanvasElement} canvas - The canvas element used for drawing.
+   * @param {HTMLVideoElement} videoElement - The video element providing the feed.
+   * @return {GuidanceBox} The coordinates and size of the guidance box.
+   * @memberof CameraService
+   */
 
   calculateFixedRegionBox(
     canvas: HTMLCanvasElement,
@@ -241,16 +273,7 @@ export class FaceDetectionService {
     );
   }
 
-  /**
-   * Checks if the face bounding box satisfies the conditions of being inside the guidance box, too close, or too far.
-   *
-   * @param faceBoundingBox The bounding box of the detected face.
-   * @param yellowBox The parameters defining the guidance box.
-   * @param minimumCoveragePercent The minimum percentage of the guidance box that the face must cover to be considered inside.
-   * @param tooCloseThresholdPercent The percentage above which the face is considered too close.
-   * @param tooFarThresholdPercent The percentage below which the face is considered too far.
-   * @returns A result object indicating various states of position and size relationship between the face and guidance box.
-   */
+
   /**
    * Checks if the face bounding box satisfies the conditions of being inside the guidance box, too close, or too far.
    *
