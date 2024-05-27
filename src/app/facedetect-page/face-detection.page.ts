@@ -132,7 +132,7 @@ export class FaceDetectionPage implements OnInit, AfterViewInit, OnDestroy {
     video: HTMLVideoElement
   ): void {
     const brightness = this.calculateBrightness(video);
-    console.log(brightness);
+    //console.log(brightness);
  if (brightness < 100) {
 this.customToast.show('Please turn on more lights. 💡', true);
    this.resetAction();
